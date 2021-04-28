@@ -1,3 +1,4 @@
+import gzip
 import hashlib
 import os
 import sqlite3
@@ -12,6 +13,7 @@ import quandl
 import requests
 from botocore import UNSIGNED
 from botocore.client import Config
+from canvasapi import Canvas
 from plotly import colors
 from plotly.subplots import make_subplots
 from scipy import stats
@@ -22,6 +24,54 @@ from tqdm.notebook import tqdm, trange
 # =============================================================================
 
 quandl.ApiConfig.api_key = os.getenv("QUANDL_API_KEY")
+
+
+# =============================================================================
+# Canvas
+# =============================================================================
+
+
+def download_files(filename_frag: str):
+    """Downloads files from Canvas with `filename_frag in filename."""
+
+    url = os.getenv("CANVAS_URL")
+    token = os.getenv("CANVAS_TOKEN")
+
+    course_id = 33395
+    canvas = Canvas(url, token)
+    course = canvas.get_course(course_id)
+
+    for f in course.get_files():
+        if filename_frag in f.filename:
+            print(f.filename, f.id)
+            file = course.get_file(f.id)
+            file.download(file.filename)
+
+
+# =============================================================================
+# Reading Data
+# =============================================================================
+
+
+def get_trade_data(pair: str, year: str, path: str = "accumulation_opportunity/data"):
+    """Reads local gzipped trade data file and return dataframe."""
+
+    dtypes = {
+        "PriceMillionths": int,
+        "Side": int,
+        "SizeBillionths": int,
+        "timestamp_utc_nanoseconds": int,
+    }
+
+    filename = f"trades_narrow_{pair}_{year}.delim.gz"
+    delimiter = {"2018": "|", "2021": "\t"}[year]
+
+    with gzip.open(f"{path}/{filename}") as f:
+        df = pd.read_csv(f, delimiter=delimiter, usecols=dtypes.keys(), dtype=dtypes)
+
+    df.timestamp_utc_nanoseconds = pd.to_datetime(df.timestamp_utc_nanoseconds)
+
+    return df.set_index("timestamp_utc_nanoseconds")
 
 
 # =============================================================================
