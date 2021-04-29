@@ -32,7 +32,7 @@ quandl.ApiConfig.api_key = os.getenv("QUANDL_API_KEY")
 
 
 def download_files(filename_frag: str):
-    """Downloads files from Canvas with `filename_frag in filename."""
+    """Downloads files from Canvas with `filename_frag` in filename."""
 
     url = os.getenv("CANVAS_URL")
     token = os.getenv("CANVAS_TOKEN")
@@ -72,6 +72,123 @@ def get_trade_data(pair: str, year: str, path: str = "accumulation_opportunity/d
     df.timestamp_utc_nanoseconds = pd.to_datetime(df.timestamp_utc_nanoseconds)
 
     return df.set_index("timestamp_utc_nanoseconds")
+
+
+# =============================================================================
+# Strategy
+# =============================================================================
+
+
+def get_accum_df(
+    df: pd.DataFrame,
+    side: int = 1,
+    arrival_time: str = "2018-04-08 22:05",
+    participation=0.050,
+    max_trade_participation=0.10,
+    chunk_size=6.5e9,
+    quantity=3.25e9,
+    price_window_ms=200,
+):
+    """Creates accumulation data frame that trades can be calculated from."""
+
+    df_accum = df.loc[arrival_time:].copy()
+    df_accum["CumSizeBillionths"] = df_accum.SizeBillionths.cumsum()
+
+    df_accum = df_accum[df_accum.Side == side].copy()
+
+    price_agg = "max" if side else "min"
+    df_accum = (
+        df_accum.reset_index()
+        .groupby("timestamp_utc_nanoseconds")
+        .agg(
+            {
+                "CumSizeBillionths": "max",
+                "SizeBillionths": "sum",
+                "PriceMillionths": price_agg,
+                "Side": "first",
+            }
+        )
+    )
+
+    df_accum["CumChunks"] = df_accum.CumSizeBillionths.floordiv(chunk_size)
+    df_accum["CumParticipation"] = (
+        (
+            df_accum.CumChunks.map(
+                df_accum.groupby("CumChunks").min()["CumSizeBillionths"].iloc[1:]
+            )
+            * participation
+        )
+        .fillna(0)
+        .apply(lambda x: min(x, quantity))
+    ).astype(int)
+
+    df_accum["TradePrice"] = (
+        df_accum.PriceMillionths.sort_index(ascending=False)
+        .rolling(f"{price_window_ms}ms")
+        .agg(price_agg)
+        .sort_index()
+    )
+
+    df_accum["QualifiedTrade"] = df_accum["TradePrice"] == df_accum["PriceMillionths"]
+
+    df_accum["MaxTradeSize"] = df_accum.SizeBillionths * max_trade_participation
+
+    return df_accum
+
+
+def get_trades_df(df_accum: pd.DataFrame) -> pd.DataFrame:
+    """Calculates trades from accumulation dataframe."""
+
+    quantity = df_accum.CumParticipation.max()
+    arrival_time = df_accum.index.min()
+    side = df_accum.iloc[0].Side
+
+    trades = []
+    cum_trades = 0
+    tick_idx = 0
+    while cum_trades < quantity:
+        tick = df_accum.iloc[tick_idx]
+
+        if tick.CumParticipation - cum_trades > 0 and tick.QualifiedTrade:
+            trade_size = min(tick.CumParticipation - cum_trades, tick.MaxTradeSize)
+            trades.append((tick.name, trade_size, tick.TradePrice))
+            cum_trades += trade_size
+
+        tick_idx += 1
+
+    df_trades = (
+        pd.DataFrame(
+            trades, columns=["timestamp_utc_nanoseconds", "TradeSize", "TradePrice"]
+        )
+        .set_index("timestamp_utc_nanoseconds")
+        .astype(int)
+    )
+
+    assert (
+        df_trades.TradeSize.sum() == quantity
+    ), "Sum of trades does not equal quantity."
+
+    S0 = df_accum.iloc[0].PriceMillionths
+    VWAP = round(
+        df_trades.TradePrice.astype(object).dot(df_trades.TradeSize.astype(object))
+        / quantity
+    )
+    IS = 1 - VWAP / S0 if side else VWAP / S0 - 1
+
+    completion_time = df_trades.index.max()
+
+    result = dict(
+        quantity=quantity,
+        side=side,
+        S0=S0,
+        VWAP=VWAP,
+        IS=IS,
+        arrival_time=arrival_time,
+        completion_time=completion_time,
+        execution_time=completion_time - arrival_time,
+    )
+
+    return df_trades, result
 
 
 # =============================================================================
