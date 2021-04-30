@@ -199,10 +199,6 @@ def get_trades_df(df_accum: pd.DataFrame) -> pd.DataFrame:
     return df_trades
 
 
-class StrategyIncomplete(Exception):
-    pass
-
-
 def get_results_df(df: pd.DataFrame, params: Dict, nobs: int = 100) -> pd.DataFrame:
     """Runs strategy for given number of observations and returns results
     dataframe.
@@ -213,7 +209,7 @@ def get_results_df(df: pd.DataFrame, params: Dict, nobs: int = 100) -> pd.DataFr
         params["arrival_time"] = np.random.choice(df.index.unique())
         try:
             results.append(get_accum_df(df, **params)[-1])
-        except StrategyIncomplete:
+        except:
             pass
 
     return pd.DataFrame(results)
