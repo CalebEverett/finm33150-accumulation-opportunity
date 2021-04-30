@@ -22,11 +22,13 @@ This objective of this analysis is to describe the dynamics of position accumula
 * Chunk size (shares)- Increments of total market volume in which increases in target participation are determined
 * Price window (ms) - Duration of look-ahead window for purposes of adhering to constraint of transacting at least favorable prices
 
-The model works by starting an arrival date and then establishing a target participation level based on the number of chunks of total market volume that have traded. If traded volume to date is less than targeted participation, trades are participated in on the appropriate side with size capped as a percentage of the aggregate volume traded on a millisecond basis and price set based on the least favorable price within a set number of milliseconds.
+The model works by starting at an arrival date and then establishing a target participation level based on the number of chunks of total market volume that have traded. If traded volume to date is less than targeted participation, trades are participated in on the appropriate side, with size capped as a percentage of the aggregate volume traded on a millisecond basis and price based on the least favorable price within a set number of milliseconds.
 
-We the execute strategies at randomly determined arrival times and characterize their dynamics in terms of:
+We then execute strategies at randomly determined arrival times and characterize their dynamics in terms of:
 * Expected value of implementation shortfall (%) - shortfall in volume weighted average price as a percentage of the market price at arrival time. Note that we follow a convention that a negative IS indicates a diminution in value.
 * Standard deviation of implementation shortfall (%)
+* Expected value of execution duration (minutes)
+* Standard deviation of execution duration (minutes)
 
 ### Constraints
 * Have to trade a least favorable price within price window
