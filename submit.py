@@ -63,5 +63,7 @@ if __name__ == "__main__":
                 submission_type="online_upload",
             ),
             file=submit_file,
-            comment=dict(text_comment="Initial submission."),
+            comment=dict(
+                text_comment="Cleaned up a few nits, added a few comments up front."
+            ),
         )
