@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     write_submit_file()
 
-    if False:
+    if True:
         assignment = course.get_assignment(351674)
 
         submission = assignment.submit(
@@ -63,5 +63,5 @@ if __name__ == "__main__":
                 submission_type="online_upload",
             ),
             file=submit_file,
-            comment=dict(text_comment="Fixed access to pre-processed data."),
+            comment=dict(text_comment="Initial submission."),
         )
