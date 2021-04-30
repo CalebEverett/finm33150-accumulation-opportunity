@@ -1,5 +1,5 @@
 [![build status](https://github.com/CalebEverett/finm33150-accumulation-opportunity/actions/workflows/build.yml/badge.svg)](https://github.com/CalebEverett/finm33150-accumulation-opportunity/actions/workflows/build.yml)
-[![nbviewer](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/CalebEverett/finm33150-accumulation-opportunity/blob/master/accumulation_opportunity.ipynb)
+[![nbviewer](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/CalebEverett/finm33150-accumulation-opportunity/blob/master/accumulation_opportunity.ipynb?flush_cache=True)
 
 # FINM33150 - Accumulation Opportunity
 
@@ -13,7 +13,7 @@ Create a virtual environment and install dependencies with
 For this assignment we assess the feasibility of accumulating large positions while attempting to maintain low trading
 costs in an electronic market.
 
-This objective of this analysis is to describe the dynamics of position accumulation and liquidation strategies. The analysis is based on marked millisecond tick-level data for BTC-USD from 
+The objective of this analysis is to describe the dynamics of position accumulation and liquidation strategies. The analysis is based on marked millisecond tick-level data for BTC-USD from 
 2018-03-31 03:34:51 to 2018-04-11 06:06:52 (579,826 obs) and 2021-04-11 02:28:52 to 2021-04-21 05:17:13 (3,777,963 obs) and a simple execution model with the following key parameters:
 * Arrival time (timestamp)
 * Position size (shares)
