@@ -64,6 +64,6 @@ if __name__ == "__main__":
             ),
             file=submit_file,
             comment=dict(
-                text_comment="Cleaned up a few nits, added a few comments up front."
+                text_comment="Cleaned up too many typos - no spell check for jupyter in vscode."
             ),
         )
