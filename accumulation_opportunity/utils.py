@@ -413,8 +413,8 @@ def make_participation_chart(
 
     fig.add_trace(
         go.Scatter(
-            x=df_trades.index,
-            y=df_trades.StratTradeSize.cumsum(),
+            x=df_trades.reindex(df_accum.index).index,
+            y=df_trades.reindex(df_accum.index).StratTradeSize.fillna(0).cumsum(),
             name="Actual Participation",
             line=dict(color=COLORS[1]),
         ),
