@@ -67,6 +67,28 @@ def get_trade_data(pair: str, year: str, path: str = "accumulation_opportunity/d
     return df.set_index("timestamp_utc_nanoseconds")
 
 
+def get_remote_data(pair: str, year: str, path: str = "s3://finm33150"):
+    """Reads local gzipped trade data file and return dataframe."""
+
+    dtypes = {
+        "PriceMillionths": int,
+        "Side": int,
+        "SizeBillionths": int,
+        "timestamp_utc_nanoseconds": int,
+    }
+
+    filename = f"trades_narrow_{pair}_{year}.delim.gz"
+    delimiter = {"2018": "|", "2021": "\t"}[year]
+
+    df = pd.read_csv(
+        f"{path}/{filename}", delimiter=delimiter, usecols=dtypes.keys(), dtype=dtypes
+    )
+
+    df.timestamp_utc_nanoseconds = pd.to_datetime(df.timestamp_utc_nanoseconds)
+
+    return df.set_index("timestamp_utc_nanoseconds")
+
+
 # =============================================================================
 # Strategy
 # =============================================================================
