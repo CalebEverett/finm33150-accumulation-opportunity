@@ -11,6 +11,7 @@ from canvasapi import Canvas
 from plotly import colors
 from plotly.subplots import make_subplots
 from scipy import stats
+from tqdm.notebook import tqdm
 
 # =============================================================================
 # Credentials
@@ -103,6 +104,7 @@ def get_accum_df(
     max_trade_participation=0.10,
     chunk_size=6.5e9,
     price_window_ms=200,
+    max_gap: int = 180,
 ):
     """Creates accumulation data frame that trades can be calculated from."""
 
@@ -156,7 +158,7 @@ def get_accum_df(
     )
 
     # Calculate trades
-    df_trades = get_trades_df(df_accum)
+    df_trades = get_trades_df(df_accum, max_gap)
     assert (
         df_trades.StratTradeSize.sum() == quantity
     ), "Sum of trades does not equal quantity."
@@ -188,12 +190,13 @@ def get_accum_df(
         max_trade_participation=max_trade_participation,
         chunk_size=int(chunk_size),
         price_window_ms=price_window_ms,
+        max_gap=pd.Series(df_trades.index).diff().max().seconds,
     )
 
     return df_accum.loc[: df_trades.index.max()], df_trades, result
 
 
-def get_trades_df(df_accum: pd.DataFrame) -> pd.DataFrame:
+def get_trades_df(df_accum: pd.DataFrame, max_gap: int = 180) -> pd.DataFrame:
     """Calculates trades from accumulation dataframe."""
 
     trades = []
@@ -201,6 +204,9 @@ def get_trades_df(df_accum: pd.DataFrame) -> pd.DataFrame:
     tick_idx = 0
     while cum_trades < df_accum.CumParticipation.max():
         tick = df_accum.iloc[tick_idx]
+        prior_tick = df_accum.iloc[max(tick_idx - 1, 0)]
+        if (tick.name - prior_tick.name).seconds > max_gap:
+            raise Exception
 
         if tick.CumParticipation - cum_trades > 0 and tick.QualifiedTrade:
             trade_size = min(tick.CumParticipation - cum_trades, tick.MaxTradeSize)
@@ -224,16 +230,23 @@ def get_trades_df(df_accum: pd.DataFrame) -> pd.DataFrame:
 def get_results_df(df: pd.DataFrame, params: Dict, nobs: int = 100) -> pd.DataFrame:
     """Runs strategy for given number of observations and returns results
     dataframe.
+
+    Args:
+        max_gap: Maximum number of seconds between trades to be a valid strategy run. This
+            is needed since there are gaps in the trading history.
     """
 
     results = []
+    pbar = tqdm(total=nobs)
     while len(results) < nobs:
         params["arrival_time"] = np.random.choice(df.index.unique())
         try:
             results.append(get_accum_df(df, **params)[-1])
+            pbar.update()
         except:
             pass
 
+    pbar.close()
     return pd.DataFrame(results)
 
 
